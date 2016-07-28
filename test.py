@@ -1,6 +1,7 @@
 # coding:utf-8
 import MySQLdb
 import numpy as np
+import time
 
 
 class DBConnect:
@@ -15,6 +16,7 @@ class DBConnect:
 
     def close_conn(self):
         self.db.close()
+
 
 class ProcessData:
     def __init__(self):
@@ -42,6 +44,55 @@ class ProcessData:
         pass
 
 
+class Cluster:
+    def __init__(self):
+        pass
+
+    def frechetDistance(self, first, second):
+        distance=0.0
+        return distance
+
+    # 聚类中心初始化
+    def initCentroids(self, dataset, k):
+        numSamples, dim = dataset.shape
+        centroids = np.zeros(k, dim)
+        for i in range(k):
+            index = int(np.random.uniform(0, numSamples))
+            centroids[i, :] = dataset[index, :]
+        return centroids
+
+    def kMean(self, dataset, k):
+        numSamples, dim = dataset.shape
+        clusterAssment = np.mat(np.zeros(numSamples, 2))
+        clusterChanged = True
+
+        ##step1:init centroids
+        centroids = self.initCentroids(dataset, k)
+
+        while clusterChanged:
+            clusterChanged = False;
+
+            for i in xrange(numSamples):
+                minDist = 10000000.0
+                minIndex = 0
+
+                for j in range(k):
+                    distance = self.frechetDistance(dataset[i, :], centroids[j, :])
+                    if distance < minDist:
+                        minDist = distance
+                        minIndex = j
+                # update data jth cluster
+                if clusterAssment[i, 0] != minIndex:
+                    clusterChanged = True
+                    clusterAssment[i, :] = minIndex, minDist * minDist
+            # update cluster centroid
+            for j in range(k):
+                poinsInCluster = dataset[np.nonzero(clusterAssment[:, 0].A == j)[0]]
+                centroids[j, :] = np.mean(poinsInCluster, axis=0)
+
+        print "cluster complete!"
+        return centroids,clusterAssment
+
 if __name__ == '__main__':
     dbconnect = DBConnect()
     process_data = ProcessData()
@@ -52,11 +103,10 @@ if __name__ == '__main__':
     for row in results:
         user_ids.append(row[0])
 
-
-    file = open('noralization_result.txt','w')
+    file = open('noralization_result.txt', 'w')
 
     for user_id in user_ids:
-        query_sql = "SELECT PowerValue FROM TemporalData WHERE UserID="+str(user_id)
+        query_sql = "SELECT PowerValue FROM TemporalData WHERE UserID=" + str(user_id)
         results = dbconnect.fetch_data(query_sql)
         power_list = []
         for data in results:
